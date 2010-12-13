@@ -32,8 +32,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
     {
         $this->profiler->start('profile');
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertEquals('profile', $test['name']);
     }
@@ -55,8 +54,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
     {
         $token = $this->profiler->start();
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertEquals(Profiler::RUNNING, $test['status']);
     }
@@ -69,8 +67,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $token = $this->profiler->start();
         $this->profiler->stop($token);
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertEquals(Profiler::STOPPED, $test['status']);
     }
@@ -82,8 +79,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
     {
         $token = $this->profiler->start();
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertTrue(!empty($test['start_time']));
     }
@@ -96,8 +92,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $token = $this->profiler->start();
         $this->profiler->stop($token);
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertTrue(!empty($test['stop_time']));
     }
@@ -110,8 +105,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $token = $this->profiler->start();
         $this->profiler->stop($token);
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertTrue(isset($test['duration']));
     }
@@ -125,8 +119,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         sleep(1);
         $this->profiler->stop($token);
 
-        $profilers = $this->profiler->getIterator();
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertEquals(1, (int) $test['duration']);
     }
@@ -138,9 +131,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
     {
         $token = $this->profiler->start();
 
-        $profilers = $this->profiler->getIterator();
-
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertTrue(is_numeric($test['start_mem']));
         $this->assertTrue($test['start_mem'] > 0);
@@ -154,11 +145,56 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $token = $this->profiler->start();
         $this->profiler->stop($token);
 
-        $profilers = $this->profiler->getIterator();
-
-        $test = $profilers->current();
+        $test = $this->getFirstProfile($this->profiler);
 
         $this->assertTrue(is_numeric($test['stop_mem']));
         $this->assertTrue($test['stop_mem'] > 0);
+    }
+
+    /**
+     * @test
+     */
+    public function startAndStopProfilerWithGroup()
+    {
+        $token = $this->profiler->start('profile name', 'group name');
+        $this->profiler->stop($token);
+
+        $test = $this->getFirstProfile($this->profiler);
+
+        $this->assertEquals(Profiler::STOPPED, $test['status']);
+        $this->assertEquals('group name', $test['group_name']);
+        $this->assertEquals('profile name', $test['name']);
+    }
+
+    /**
+     * @test
+     */
+    public function checkDefaultNameIsBlank()
+    {
+        $token = $this->profiler->start();
+        $this->profiler->stop($token);
+
+        $test = $this->getFirstProfile($this->profiler);
+
+        $this->assertEquals('', $test['name']);
+    }
+
+    /**
+     * @test
+     */
+    public function checkDefaultGroupNameIsBlank()
+    {
+        $token = $this->profiler->start('profile name');
+        $this->profiler->stop($token);
+
+        $test = $this->getFirstProfile($this->profiler);
+
+        $this->assertEquals('', $test['group_name']);
+    }
+
+    protected function getFirstProfile($profiler)
+    {
+        $profilers = $profiler->getIterator();
+        return $profilers->current();
     }
 }

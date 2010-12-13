@@ -7,10 +7,11 @@ class Profiler implements IteratorAggregate
 
     private $profilers;
 
-    public function start($name = null)
+    public function start($name = null, $groupName = null)
     {
         $this->profilers[] = array(
             'name' => $name,
+            'group_name' => $groupName,
             'status' => self::RUNNING,
             'start_time' => microtime(true),
             'start_mem' => memory_get_usage(true),
