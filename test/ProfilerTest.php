@@ -86,7 +86,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $profilers = $profiler->getIterator();
         $test = $profilers->current();
 
-        $this->assertTrue(!empty($test['start']));
+        $this->assertTrue(!empty($test['start_time']));
     }
 
     /**
@@ -102,7 +102,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $profilers = $profiler->getIterator();
         $test = $profilers->current();
 
-        $this->assertTrue(!empty($test['stop']));
+        $this->assertTrue(!empty($test['stop_time']));
     }
 
     /**
@@ -138,4 +138,38 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals(1, (int) $test['duration']);
     }
 
+    /**
+     * @test
+     */
+    public function startProfilerHasInitialMemory()
+    {
+        $profiler = new Profiler();
+
+        $token = $profiler->start();
+
+        $profilers = $profiler->getIterator();
+
+        $test = $profilers->current();
+
+        $this->assertTrue(is_numeric($test['start_mem']));
+        $this->assertTrue($test['start_mem'] > 0);
+    }
+
+    /**
+     * @test
+     */
+    public function startAndStopProfilerHasStopMemory()
+    {
+        $profiler = new Profiler();
+
+        $token = $profiler->start();
+        $profiler->stop($token);
+
+        $profilers = $profiler->getIterator();
+
+        $test = $profilers->current();
+
+        $this->assertTrue(is_numeric($test['stop_mem']));
+        $this->assertTrue($test['stop_mem'] > 0);
+    }
 }

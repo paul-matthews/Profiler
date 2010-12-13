@@ -12,7 +12,8 @@ class Profiler implements IteratorAggregate
         $this->profilers[] = array(
             'name' => $name,
             'status' => self::RUNNING,
-            'start' => microtime(true),
+            'start_time' => microtime(true),
+            'start_mem' => memory_get_usage(true),
         );
         end($this->profilers);
 
@@ -28,8 +29,12 @@ class Profiler implements IteratorAggregate
         $profile = $this->profilers[$token];
 
         $profile['status'] = self::STOPPED;
-        $profile['stop'] = microtime(true);
-        $profile['duration'] = $profile['stop'] - $profile['start'];
+
+        $profile['stop_time'] = microtime(true);
+        $profile['duration'] = $profile['stop_time'] - $profile['start_time'];
+
+        $profile['stop_mem'] = memory_get_usage(true);
+        $profile['usage_mem'] = $profile['stop_mem'] - $profile['start_mem'];
 
         $this->profilers[$token] = $profile;
 
