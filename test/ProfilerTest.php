@@ -3,16 +3,25 @@ require_once(dirname(__FILE__) . '/../lib/Profiler.php');
 
 class ProfilerTest extends PHPUnit_Framework_TestCase
 {
+
+    public function setUp()
+    {
+        $this->profiler = new Profiler();
+    }
+
+    public function tearDown()
+    {
+        unset($this->profiler);
+    }
+
     /**
      * @test
      */
     public function startingProfilerShouldCreateProfile()
     {
-        $profiler = new Profiler();
+        $this->profiler->start();
 
-        $profiler->start();
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $this->assertEquals(1, count($profilers));
     }
 
@@ -21,11 +30,9 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startingProfilerWithNameShouldCreateProfilerWithName()
     {
-        $profiler = new Profiler();
+        $this->profiler->start('profile');
 
-        $profiler->start('profile');
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertEquals('profile', $test['name']);
@@ -36,11 +43,9 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerShouldReturnSuccess()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start('profile');
 
-        $token = $profiler->start('profile');
-
-        $this->assertTrue($profiler->stop($token));
+        $this->assertTrue($this->profiler->stop($token));
     }
 
     /**
@@ -48,11 +53,9 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startProfilerIsRunning()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
 
-        $token = $profiler->start();
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertEquals(Profiler::RUNNING, $test['status']);
@@ -63,12 +66,10 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerIsStopped()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
+        $this->profiler->stop($token);
 
-        $token = $profiler->start();
-        $profiler->stop($token);
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertEquals(Profiler::STOPPED, $test['status']);
@@ -79,11 +80,9 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startProfilerHasStartTime()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
 
-        $token = $profiler->start();
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertTrue(!empty($test['start_time']));
@@ -94,12 +93,10 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerHasEndTime()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
+        $this->profiler->stop($token);
 
-        $token = $profiler->start();
-        $profiler->stop($token);
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertTrue(!empty($test['stop_time']));
@@ -110,12 +107,10 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerHasDuration()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
+        $this->profiler->stop($token);
 
-        $token = $profiler->start();
-        $profiler->stop($token);
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertTrue(isset($test['duration']));
@@ -126,13 +121,11 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerHasValidDuration()
     {
-        $profiler = new Profiler();
-
-        $token = $profiler->start();
+        $token = $this->profiler->start();
         sleep(1);
-        $profiler->stop($token);
+        $this->profiler->stop($token);
 
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
         $test = $profilers->current();
 
         $this->assertEquals(1, (int) $test['duration']);
@@ -143,11 +136,9 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startProfilerHasInitialMemory()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
 
-        $token = $profiler->start();
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
 
         $test = $profilers->current();
 
@@ -160,12 +151,10 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
      */
     public function startAndStopProfilerHasStopMemory()
     {
-        $profiler = new Profiler();
+        $token = $this->profiler->start();
+        $this->profiler->stop($token);
 
-        $token = $profiler->start();
-        $profiler->stop($token);
-
-        $profilers = $profiler->getIterator();
+        $profilers = $this->profiler->getIterator();
 
         $test = $profilers->current();
 
