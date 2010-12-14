@@ -1,14 +1,24 @@
 <?php
+require_once(dirname(__FILE__) . '/ProfilerException.php');
+require_once(dirname(__FILE__) . '/ProfilerDisabledException.php');
 
 class Profiler implements IteratorAggregate
 {
     const RUNNING = 'running';
     const STOPPED = 'stopped';
 
+    private $enabled;
     private $profilers;
+
+    public function __construct($enabled = false)
+    {
+        $this->setEnabled($enabled);
+    }
 
     public function start($name = null, $groupName = null)
     {
+        $this->ensureEnabled();
+
         $this->profilers[] = array(
             'name' => $name,
             'group_name' => $groupName,
@@ -23,6 +33,12 @@ class Profiler implements IteratorAggregate
 
     public function stop($token)
     {
+        $this->ensureEnabled();
+
+        if (!$this->enabled || $token === false) {
+            return false;
+        }
+
         if (!$this->profilers[$token]) {
             throw new Exception('Unknown Token');
         }
@@ -44,6 +60,8 @@ class Profiler implements IteratorAggregate
 
     public function getProfileByToken($token)
     {
+        $this->ensureEnabled();
+
         if (!isset($this->profilers[$token])) {
             throw new Exception("Profile not found with token: '$token'");
         }
@@ -53,6 +71,8 @@ class Profiler implements IteratorAggregate
 
     public function getSummary($groupName = null)
     {
+        $this->ensureEnabled();
+
         $profiles = $this->getIterator($groupName);
         $summary = array(
             'count' => 0,
@@ -94,6 +114,8 @@ class Profiler implements IteratorAggregate
 
     public function getIterator($groupName = null)
     {
+        $this->ensureEnabled();
+
         $profilers = $this->profilers;
 
         if (!empty($groupName)) {
@@ -105,5 +127,24 @@ class Profiler implements IteratorAggregate
         }
 
         return new ArrayIterator($profilers);
+    }
+
+    public function setEnabled($enabled = false)
+    {
+        $this->enabled = (boolean) $enabled;
+    }
+
+    public function getEnabled()
+    {
+        return $this->enabled;
+    }
+
+    protected function ensureEnabled()
+    {
+        if (!$this->enabled) {
+            throw new ProfilerDisabledException('Profiler disabled');
+        }
+
+        return true;
     }
 }

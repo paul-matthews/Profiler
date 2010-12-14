@@ -7,7 +7,7 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->profiler = new Profiler();
+        $this->profiler = new Profiler(true);
 
     }
 
@@ -341,6 +341,17 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
             $profile['duration'],
             $summary['longest']
         );
+    }
+
+    /**
+     * @test
+     * @expectedException ProfilerDisabledException
+     */
+    public function testDisabledProfilerThrowsProfilerDisabledException()
+    {
+        $disabledProfiler = new Profiler(false);
+
+        $disabledProfiler->start();
     }
 
     protected function getFirstProfile($profiler, $groupName = null)
