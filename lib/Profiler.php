@@ -1,9 +1,15 @@
 <?php
 require_once(dirname(__FILE__) . '/ProfilerException.php');
 require_once(dirname(__FILE__) . '/ProfilerDisabledException.php');
+require_once(dirname(__FILE__) . '/Observable.php');
+require_once(dirname(__FILE__) . '/Observer.php');
 
-class Profiler implements IteratorAggregate
+
+class Profiler implements IteratorAggregate, Observable
 {
+    const START_MESSAGE_FORMAT = '[%d] Started profile: [%s] %s';
+    const STOP_MESSAGE_FORMAT = '[%d] Stopped profile: [%s] %s (Duration: %0.2f, Mem: %db)';
+
     const RUNNING = 'running';
     const STOPPED = 'stopped';
 
@@ -28,7 +34,16 @@ class Profiler implements IteratorAggregate
         );
         end($this->profilers);
 
-        return key($this->profilers);
+        $key = key($this->profilers);
+
+        $this->notify(sprintf(
+            self::START_MESSAGE_FORMAT,
+            $key,
+            $groupName,
+            $name
+        ), Observer::DEBUG);
+
+        return $key;
     }
 
     public function stop($token)
@@ -54,6 +69,18 @@ class Profiler implements IteratorAggregate
         $profile['usage_mem'] = $profile['stop_mem'] - $profile['start_mem'];
 
         $this->profilers[$token] = $profile;
+
+        $message = "[$token] Stop profile: " .
+            "[{$profile['name']}] {$profile['group_name']} " .
+            "";
+        $this->notify(sprintf(
+            self::STOP_MESSAGE_FORMAT,
+            $token,
+            $profile['name'],
+            $profile['group_name'],
+            $profile['duration'],
+            $profile['usage_mem']
+        ), Observer::DEBUG);
 
         return true;
     }
@@ -110,6 +137,26 @@ class Profiler implements IteratorAggregate
         }
 
         return $summary;
+    }
+
+    public function register(Observer $observer)
+    {
+        $this->observers[] = $observer;
+
+        end($this->observers);
+        return key($this->observers);
+    }
+
+    protected function notify($message, $type = Observer::DEBUG)
+    {
+        if (!is_array($this->observers)) {
+            $this->observers = array();
+        }
+        foreach ($this->observers as $observer)
+        {
+            $observer->notify($this, $message, $type);
+        }
+        return true;
     }
 
     public function getIterator($groupName = null)
