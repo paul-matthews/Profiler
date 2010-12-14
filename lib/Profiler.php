@@ -54,44 +54,42 @@ class Profiler implements IteratorAggregate
     public function getSummary($groupName = null)
     {
         $profiles = $this->getIterator($groupName);
-        $count = count($profiles);
-        $running = 0;
-        $longest = 0;
-        $highestUsageMem = 0;
-        $totalTime = 0;
+        $summary = array(
+            'count' => 0,
+            'count_running' => 0,
+            'longest' => 0,
+            'highest_usage_mem' => 0,
+            'total_time' => 0,
+            'avg_time' => 0,
+        );
 
         foreach ($profiles as $key => $profile) {
+            $summary['count']++;
+
             if ($profile['status'] == self::RUNNING) {
-                $running++;
+                $summary['count_running']++;
             }
             else {
-                $totalTime += $profile['duration'];
+                $summary['total_time'] += $profile['duration'];
             }
 
-            if ($profile['duration'] > $longest) {
-                $longest = $profile['duration'];
+            if ($profile['duration'] > $summary['longest']) {
+                $summary['longest'] = $profile['duration'];
             }
 
-            if ($profile['usage_mem'] > $highestUsageMem) {
-                $highestUsageMem = $profile['usage_mem'];
+            if ($profile['usage_mem'] > $summary['highest_usage_mem']) {
+                $summary['highest_usage_mem'] = $profile['usage_mem'];
             }
 
         }
-        $finished = $count - $running;
+        $summary['finished'] = $summary['count'] - $summary['count_running'];
 
-        $averageTime = 0;
-        if ($finished > 0) {
-            $averageTime = $totalTime / $finished;
+        if ($summary['finished'] > 0) {
+            $summary['avg_time'] =
+                $summary['total_time'] / $summary['finished'];
         }
 
-        return array(
-            'count' => $count,
-            'count_running' => $running,
-            'longest' => $longest,
-            'highest_usage_mem' => $highestUsageMem,
-            'total_time' => $totalTime,
-            'avg_time' => $averageTime,
-        );
+        return $summary;
     }
 
     public function getIterator($groupName = null)

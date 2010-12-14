@@ -312,6 +312,37 @@ class ProfilerTest extends PHPUnit_Framework_TestCase
         $this->assertEquals($total, $summary['total_time']);
     }
 
+    /**
+     * @test
+     */
+    public function testSumaryWithGroupReturnsCorrectGroup()
+    {
+        $token1 = $this->profiler->start('profile name 1');
+        $this->profiler->stop($token1);
+
+        $token2 = $this->profiler->start('profile name 2', 'group name');
+
+        $testVar = array();
+        for($i = 0; $i < 1000; $i++) {
+            $testVar[] = $this->getLongText();
+        }
+
+        $this->profiler->stop($token2);
+
+        $profile = $this->profiler->getProfileByToken($token2);
+        $summary = $this->profiler->getSummary('group name');
+
+        $this->assertEquals(1, $summary['count']);
+        $this->assertEquals(
+            $profile['usage_mem'],
+            $summary['highest_usage_mem']
+        );
+        $this->assertEquals(
+            $profile['duration'],
+            $summary['longest']
+        );
+    }
+
     protected function getFirstProfile($profiler, $groupName = null)
     {
         $profilers = $profiler->getIterator($groupName);
