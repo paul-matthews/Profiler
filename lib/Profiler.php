@@ -7,10 +7,11 @@ class Profiler implements IteratorAggregate
 
     private $profilers;
 
-    public function start($name = null)
+    public function start($name = null, $groupName = null)
     {
         $this->profilers[] = array(
             'name' => $name,
+            'group_name' => $groupName,
             'status' => self::RUNNING,
             'start_time' => microtime(true),
             'start_mem' => memory_get_usage(true),
@@ -41,8 +42,68 @@ class Profiler implements IteratorAggregate
         return true;
     }
 
-    public function getIterator()
+    public function getProfileByToken($token)
     {
-        return new ArrayIterator($this->profilers);
+        if (!isset($this->profilers[$token])) {
+            throw new Exception("Profile not found with token: '$token'");
+        }
+
+        return $this->profilers[$token];
+    }
+
+    public function getSummary($groupName = null)
+    {
+        $profiles = $this->getIterator($groupName);
+        $summary = array(
+            'count' => 0,
+            'count_running' => 0,
+            'longest' => 0,
+            'highest_usage_mem' => 0,
+            'total_time' => 0,
+            'avg_time' => 0,
+        );
+
+        foreach ($profiles as $key => $profile) {
+            $summary['count']++;
+
+            if ($profile['status'] == self::RUNNING) {
+                $summary['count_running']++;
+            }
+            else {
+                $summary['total_time'] += $profile['duration'];
+            }
+
+            if ($profile['duration'] > $summary['longest']) {
+                $summary['longest'] = $profile['duration'];
+            }
+
+            if ($profile['usage_mem'] > $summary['highest_usage_mem']) {
+                $summary['highest_usage_mem'] = $profile['usage_mem'];
+            }
+
+        }
+        $summary['finished'] = $summary['count'] - $summary['count_running'];
+
+        if ($summary['finished'] > 0) {
+            $summary['avg_time'] =
+                $summary['total_time'] / $summary['finished'];
+        }
+
+        return $summary;
+    }
+
+    public function getIterator($groupName = null)
+    {
+        $profilers = $this->profilers;
+
+        if (!empty($groupName)) {
+            foreach ($profilers as $key => $profile) {
+                if ($profile['group_name'] != $groupName) {
+                    unset($profilers[$key]);
+                }
+            }
+        }
+
+        return new ArrayIterator($profilers);
     }
 }
