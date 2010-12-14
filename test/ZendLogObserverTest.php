@@ -84,4 +84,35 @@ class ZendLogObserverTest extends PHPUnit_Framework_TestCase
         $this->profiler->register($observer);
         $this->profiler->start();
     }
+
+    public function testObserveLogSummary()
+    {
+        $log = $this->getMock('Zend_Log', array('log'));
+        $log->expects($this->once())
+            ->method('log');
+
+        $observer = new ZendLogObserver($log);
+
+        $this->profiler->start();
+
+        $this->profiler->register($observer);
+
+        $this->profiler->triggerObserveSummary();
+    }
+
+    public function testObserveLogSummaryAllCallsLogMoreThanOnce()
+    {
+        $log = $this->getMock('Zend_Log', array('log'));
+        $log->expects($this->exactly(2))
+            ->method('log');
+
+        $observer = new ZendLogObserver($log);
+
+        $this->profiler->start('no group');
+        $this->profiler->start('has group', 'test group');
+
+        $this->profiler->register($observer);
+
+        $this->profiler->triggerObserveSummaryAll();
+    }
 }
