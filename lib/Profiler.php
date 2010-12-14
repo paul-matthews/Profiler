@@ -42,8 +42,70 @@ class Profiler implements IteratorAggregate
         return true;
     }
 
-    public function getIterator()
+    public function getProfileByToken($token)
     {
-        return new ArrayIterator($this->profilers);
+        if (!isset($this->profilers[$token])) {
+            throw new Exception("Profile not found with token: '$token'");
+        }
+
+        return $this->profilers[$token];
+    }
+
+    public function getSummary($groupName = null)
+    {
+        $profiles = $this->getIterator($groupName);
+        $count = count($profiles);
+        $running = 0;
+        $longest = 0;
+        $highestUsageMem = 0;
+        $totalTime = 0;
+
+        foreach ($profiles as $key => $profile) {
+            if ($profile['status'] == self::RUNNING) {
+                $running++;
+            }
+            else {
+                $totalTime += $profile['duration'];
+            }
+
+            if ($profile['duration'] > $longest) {
+                $longest = $profile['duration'];
+            }
+
+            if ($profile['usage_mem'] > $highestUsageMem) {
+                $highestUsageMem = $profile['usage_mem'];
+            }
+
+        }
+        $finished = $count - $running;
+
+        $averageTime = 0;
+        if ($finished > 0) {
+            $averageTime = $totalTime / $finished;
+        }
+
+        return array(
+            'count' => $count,
+            'count_running' => $running,
+            'longest' => $longest,
+            'highest_usage_mem' => $highestUsageMem,
+            'total_time' => $totalTime,
+            'avg_time' => $averageTime,
+        );
+    }
+
+    public function getIterator($groupName = null)
+    {
+        $profilers = $this->profilers;
+
+        if (!empty($groupName)) {
+            foreach ($profilers as $key => $profile) {
+                if ($profile['group_name'] != $groupName) {
+                    unset($profilers[$key]);
+                }
+            }
+        }
+
+        return new ArrayIterator($profilers);
     }
 }
