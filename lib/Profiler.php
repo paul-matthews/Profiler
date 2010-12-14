@@ -8,17 +8,22 @@ require_once(dirname(__FILE__) . '/Observer.php');
 class Profiler implements IteratorAggregate, Observable
 {
     const START_MESSAGE_FORMAT = '[%d] Started profile: [%s] %s';
-    const STOP_MESSAGE_FORMAT = '[%d] Stopped profile: [%s] %s (Duration: %0.2f, Mem: %db)';
+    const STOP_MESSAGE_FORMAT = '[%d] Stopped profile: [%s] %s (Duration: %0.3f, Mem: %db)';
+    const SUMMARY_MESSAGE_FORMAT = 'Count: %d, Remaining: %d, Longest: %0.3f, Highest Mem: %db, Total Time: %0.3f, Average Time: %0.3f';
+
 
     const RUNNING = 'running';
     const STOPPED = 'stopped';
 
     private $enabled;
     private $profilers;
+    private $groups;
 
     public function __construct($enabled = false)
     {
         $this->setEnabled($enabled);
+        $this->groups = array();
+        $this->profilers = array();
     }
 
     public function start($name = null, $groupName = null)
@@ -35,6 +40,8 @@ class Profiler implements IteratorAggregate, Observable
         end($this->profilers);
 
         $key = key($this->profilers);
+
+        $this->addGroup($groupName);
 
         $this->notify(sprintf(
             self::START_MESSAGE_FORMAT,
@@ -96,6 +103,11 @@ class Profiler implements IteratorAggregate, Observable
         return $this->profilers[$token];
     }
 
+    public function getGroups()
+    {
+        return $this->groups;
+    }
+
     public function getSummary($groupName = null)
     {
         $this->ensureEnabled();
@@ -147,16 +159,28 @@ class Profiler implements IteratorAggregate, Observable
         return key($this->observers);
     }
 
-    protected function notify($message, $type = Observer::DEBUG)
+    public function triggerObserveSummaryAll()
     {
-        if (!is_array($this->observers)) {
-            $this->observers = array();
-        }
-        foreach ($this->observers as $observer)
+        foreach ($this->getGroups() as $groupName)
         {
-            $observer->notify($this, $message, $type);
+            $this->triggerObserveSummary($groupName);
         }
-        return true;
+        $this->triggerObserveSummary();
+    }
+
+    public function triggerObserveSummary($groupName = null)
+    {
+        $summary = $this->getSummary($groupName);
+
+        $this->notify(sprintf(
+            self::SUMMARY_MESSAGE_FORMAT,
+            $summary['count'],
+            $summary['count_running'],
+            $summary['longest'],
+            $summary['highest_usage_mem'],
+            $summary['total_time'],
+            $summary['avg_time']
+        ));
     }
 
     public function getIterator($groupName = null)
@@ -193,5 +217,25 @@ class Profiler implements IteratorAggregate, Observable
         }
 
         return true;
+    }
+
+    protected function notify($message, $type = Observer::DEBUG)
+    {
+        if (!is_array($this->observers)) {
+            $this->observers = array();
+        }
+        foreach ($this->observers as $observer)
+        {
+            $observer->notify($this, $message, $type);
+        }
+        return true;
+    }
+
+    protected function addGroup($groupName)
+    {
+        if (!empty($groupName) && !in_array($groupName, $this->groups)) {
+            $this->groups[] = $groupName;
+        }
+        return $this;
     }
 }
